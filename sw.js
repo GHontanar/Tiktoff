@@ -1,6 +1,6 @@
 // Guarda la app en el móvil para que abra rápido y funcione sin conexión
 // (los filtros de cara necesitan internet solo la primera vez).
-const CACHE = 'chispa-v1';
+const CACHE = 'tiktoff-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {

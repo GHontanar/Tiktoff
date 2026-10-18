@@ -1,4 +1,4 @@
-# Chispa Cam
+# TikToff
 
 Cámara con filtros para el móvil. No tiene cuentas, ni feed, ni subidas: todo se procesa en el propio teléfono y solo se guarda lo que ella decida guardar o enviar.
 

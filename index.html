@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Chispa Cam</title>
+<title>TikToff</title>
 <meta name="description" content="Cámara con filtros. Sin cuentas y sin subir nada a internet.">
 <meta name="theme-color" content="#0f0b16">
 <link rel="manifest" href="manifest.webmanifest">
@@ -20,7 +20,7 @@
   --glass:rgba(15,11,22,.42);
   --paper:#fff8f1;        /* texto */
   --muted:rgba(255,248,241,.72);
-  --spark-a:#ffd23f;      /* chispa: amarillo → rosa */
+  --spark-a:#ffd23f;      /* chispa de color: amarillo → rosa */
   --spark-b:#ff4fa0;
   --rec:#ff3b4a;
   --font:'Gabarito',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
@@ -163,7 +163,7 @@ button:focus-visible{outline:3px solid var(--spark-a);outline-offset:3px}
 </div>
 
 <div class="top">
-  <div class="brand">chispa</div>
+  <div class="brand">TikToff</div>
   <div class="top-actions">
     <button class="round" id="musicBtn" aria-label="Elegir música">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
@@ -202,7 +202,7 @@ button:focus-visible{outline:3px solid var(--spark-a);outline-offset:3px}
 
 <section class="sheet start" id="start">
   <div class="sparks" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-  <div class="logo">chispa</div>
+  <div class="logo">TikToff</div>
   <p>Tu cámara con filtros. Sin cuentas, sin seguidores, sin subir nada.</p>
   <button class="btn primary" id="startBtn">Abrir la cámara</button>
   <p class="fine">Las fotos y vídeos se quedan en este móvil hasta que tú decidas guardarlos o enviarlos.</p>
@@ -242,8 +242,8 @@ const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmark
 
 /* ---------- utilidades ---------- */
 const store = {
-  get(k, d){ try{ const v = localStorage.getItem('chispa:'+k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
-  set(k, v){ try{ localStorage.setItem('chispa:'+k, JSON.stringify(v)); }catch(e){} }
+  get(k, d){ try{ const v = localStorage.getItem('tiktoff:'+k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('tiktoff:'+k, JSON.stringify(v)); }catch(e){} }
 };
 const rand = (a,b) => a + Math.random()*(b-a);
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
@@ -1069,7 +1069,7 @@ function renderMusic(){
     `<button class="mrow" data-k="${key}" aria-pressed="${on}"><span class="art ${cls}">${icon}</span><span class="txt"><b>${title}</b><span>${sub}</span></span>${on && playing ? eq : ''}</button>`;
   $('#mlist').innerHTML =
     row('none', '🔇', 'g-juegos', 'Sin música', 'Solo el sonido de la cámara', !sel) +
-    BEATS.map(b => row('beat:' + b.id, b.icon, 'g-color', b.name, `${b.mood} · ritmo de Chispa`, !!sel && sel.kind === 'beat' && sel.id === b.id)).join('') +
+    BEATS.map(b => row('beat:' + b.id, b.icon, 'g-color', b.name, `${b.mood} · ritmo de TikToff`, !!sel && sel.kind === 'beat' && sel.id === b.id)).join('') +
     row('file', '📱', 'g-arte', sel && sel.kind === 'file' ? sel.name : 'Una canción del móvil…', sel && sel.kind === 'file' ? 'Toca para elegir otra' : 'Elige un audio que tengas guardado', !!sel && sel.kind === 'file');
   $('#voiceToggle').checked = Music.voice;
   const pill = $('#musicPill');
@@ -1156,7 +1156,7 @@ function stamp(){ const d = new Date(), p = n => String(n).padStart(2, '0'); ret
 function takePhoto(){
   const fl = $('#flash'); fl.style.transition = 'none'; fl.style.opacity = '.85';
   requestAnimationFrame(() => { fl.style.transition = 'opacity .35s'; fl.style.opacity = '0'; });
-  view.toBlob(b => { if(b) openPreview({blob: b, type: 'image', name: `chispa_${stamp()}.jpg`}); }, 'image/jpeg', 0.92);
+  view.toBlob(b => { if(b) openPreview({blob: b, type: 'image', name: `tiktoff_${stamp()}.jpg`}); }, 'image/jpeg', 0.92);
 }
 
 function pickMime(){
@@ -1187,7 +1187,7 @@ function startRec(){
     vs.getVideoTracks().forEach(t => t.stop());
     const type = rec.mimeType || mime || 'video/webm';
     const blob = new Blob(chunks, {type});
-    if(blob.size) openPreview({blob, type: 'video', name: `chispa_${stamp()}.${type.includes('mp4') ? 'mp4' : 'webm'}`});
+    if(blob.size) openPreview({blob, type: 'video', name: `tiktoff_${stamp()}.${type.includes('mp4') ? 'mp4' : 'webm'}`});
   };
   rec.start(500);
   S.rec = rec; S.recording = true; S.recStart = performance.now();
