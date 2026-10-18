@@ -34,7 +34,15 @@ jobs:
       - name: Leer tendencias
         env:
           NODE_PATH: ${{ runner.temp }}/node_modules
+          TRENDING_DEBUG_DIR: ${{ runner.temp }}/debug
         run: node scripts/trending.cjs
+      - name: Capturas si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas
+          path: ${{ runner.temp }}/debug
+          if-no-files-found: ignore
       - name: Guardar trending.json
         run: |
           git diff --quiet -- trending.json && { echo "Sin cambios"; exit 0; }
@@ -42,4 +50,4 @@ jobs:
           git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
           git add trending.json
           git commit -m "Actualizar tendencias de TikTok"
-          git push
+          git push origin HEAD:${{ github.ref_name }}

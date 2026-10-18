@@ -1,19 +1,21 @@
 // Lee las canciones en tendencia del TikTok Creative Center y escribe trending.json (solo título y artista, sin audio).
-// La página no tiene API pública: se abre con un navegador y se recoge la respuesta que la propia página pide.
+// La página no tiene API pública: se abre con un navegador y se recogen las respuestas JSON que la propia página pide.
 // Si algo falla o la lista sale vacía, no se toca trending.json y la app sigue usando la última lista buena.
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
 
 const OUT = path.join(__dirname, '..', 'trending.json');
-const PAGE = 'https://ads.tiktok.com/business/creativecenter/inspiration/popular/music/pc/es';
-const API = /creative_radar_api\/v1\/popular_trend\/sound\/rank_list/;
+const DEBUG_DIR = process.env.TRENDING_DEBUG_DIR || null;
+const PAGE = 'https://ads.tiktok.com/business/creativecenter/inspiration/popular/music/pc/en';
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
+const RANK_API = /popular_trend\/(sound|music)/;
 const MIN_ITEMS = 5;
 
 // Busca dentro del JSON la lista de canciones, sin depender de la forma exacta de la respuesta
 function findSongs(node){
   if(Array.isArray(node)){
-    if(node.length && node.every(x => x && typeof x === 'object' && typeof x.title === 'string')) return node;
+    if(node.length >= MIN_ITEMS && node.every(x => x && typeof x === 'object' && typeof x.title === 'string' && ('author' in x || 'artist' in x))) return node;
     for(const x of node){ const r = findSongs(x); if(r) return r; }
   } else if(node && typeof node === 'object'){
     for(const k of Object.keys(node)){ const r = findSongs(node[k]); if(r) return r; }
@@ -23,17 +25,36 @@ function findSongs(node){
 
 async function grab(country){
   const browser = await chromium.launch();
+  const seen = [];
   try{
-    const page = await browser.newPage({locale: 'es-ES'});
-    if(country) await page.route(API, route => {
+    const page = await browser.newPage({locale: 'es-ES', userAgent: UA, viewport: {width: 1366, height: 900}});
+    if(country) await page.route(RANK_API, route => {
       const u = new URL(route.request().url());
       u.searchParams.set('country_code', country); u.searchParams.set('period', '7'); u.searchParams.set('limit', '50');
       route.continue({url: u.toString()});
     });
-    const got = page.waitForResponse(r => API.test(r.url()) && r.status() === 200, {timeout: 60000});
+    let songs = null;
+    page.on('response', async r => {
+      const t = r.request().resourceType();
+      if(t !== 'xhr' && t !== 'fetch') return;
+      seen.push(`${r.status()} ${r.url().slice(0, 160)}`);
+      if(songs) return;
+      try{ const s = findSongs(await r.json()); if(s) songs = s; }catch(e){}
+    });
     await page.goto(PAGE, {waitUntil: 'domcontentloaded', timeout: 60000});
-    const json = await (await got).json();
-    const songs = findSongs(json) || [];
+    for(let i = 0; i < 40 && !songs; i++){
+      await page.waitForTimeout(1500);
+      if(i === 6) await page.mouse.wheel(0, 1500);
+    }
+    if(!songs){
+      console.log(`Sin lista. URL final: ${page.url()} · título: ${await page.title()}`);
+      console.log('Peticiones vistas:\n  ' + (seen.slice(0, 40).join('\n  ') || '(ninguna)'));
+      if(DEBUG_DIR){
+        fs.mkdirSync(DEBUG_DIR, {recursive: true});
+        await page.screenshot({path: path.join(DEBUG_DIR, `pagina-${country || 'general'}.png`), fullPage: true}).catch(() => {});
+      }
+      return [];
+    }
     return songs.map((s, i) => ({
       rank: s.rank || i + 1,
       title: s.title.trim(),
