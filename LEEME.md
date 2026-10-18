@@ -21,7 +21,8 @@ Cámara con filtros para el móvil. No tiene cuentas, ni feed, ni subidas: todo 
 - **Arte**: Neón, Cómic, Píxel, Glitch, VHS, Espejo, Caleido, Ondas, Lluvia de estrellas.
 - **Caras**: Ojos XXL, Burbuja, Gatito, Gafas estrella, Corona de flores, Corazones, Alien, Elegante.
 - **Juegos**: Boca mágica (abre la boca y salen corazones y estrellas), Ruleta (¿qué animal eres hoy?…), Imita.
-- **Música**: cuatro ritmos propios que la app genera al momento, o una canción guardada en el móvil. Opción de grabar también la voz.
+- **Música**: cuatro ritmos propios que la app genera al momento, o una canción guardada en el móvil. Opción de grabar también la voz, y con una canción del móvil se elige en qué segundo empieza.
+- **Lo que suena en TikTok**: lista de canciones en tendencia (solo título y artista, sin audio) con un botón para buscarlas en YouTube. Se actualiza sola cada lunes con la tarea de GitHub `.github/workflows/trending.yml`, que lee el TikTok Creative Center y guarda `trending.json`. Si TikTok cambia su web y la tarea falla, la app sigue mostrando la última lista buena; también se puede lanzar a mano desde la pestaña Actions → «Tendencias de TikTok» → Run workflow.
 - **Gestos**: deslizar a los lados cambia de filtro y doble toque gira la cámara. En modo Foto, tocar hace una foto y mantener pulsado graba. En modo Vídeo, tocar empieza y para (60 s como máximo). También tiene cuenta atrás de 3 s.
 - **Guardar** deja el archivo en la carpeta Descargas del móvil, que aparece en la galería. **Enviar** abre el menú de compartir de Android.
 
