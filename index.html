@@ -152,6 +152,18 @@ button:focus-visible{outline:3px solid var(--spark-a);outline-offset:3px}
 .switch{justify-content:space-between;font-weight:700;font-size:16px;padding:14px 10px}
 .switch input{width:48px;height:28px;accent-color:var(--spark-b)}
 .mnote{margin:2px 10px 0;font-size:13px;color:var(--muted);line-height:1.4}
+.seek{flex-direction:column;align-items:stretch;gap:8px;padding:6px 10px 12px}
+.seek span{font-size:14px;color:var(--muted)}.seek b{color:var(--paper)}
+.seek input{width:100%;accent-color:var(--spark-b)}
+.trend-head{justify-content:space-between;font-weight:700;font-size:16px;padding:14px 10px}
+.trend-head .chev{transition:transform .2s}.trend-head[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.trow{display:flex;align-items:center;gap:12px;padding:8px 10px}
+.trow .num{flex:0 0 30px;font-weight:900;font-size:18px;text-align:center;color:var(--spark-a)}
+.trow .txt{flex:1;min-width:0}
+.trow .txt b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .txt span{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.yt{flex:0 0 auto;min-height:36px;display:inline-flex;align-items:center;padding:0 14px;border-radius:999px;
+  background:#ff0033;color:#fff;font-weight:700;font-size:14px;text-decoration:none}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -217,8 +229,14 @@ button:focus-visible{outline:3px solid var(--spark-a);outline-offset:3px}
 <section class="msheet" id="msheet" role="dialog" aria-label="Música" hidden>
   <div class="mhead"><strong>Música</strong><button class="btn small" id="mDone">Listo</button></div>
   <div id="mlist"></div>
+  <div class="mrow seek" id="seek" hidden>
+    <span>Empieza en el segundo <b id="seekLbl">0:00</b></span>
+    <input type="range" id="seekRange" min="0" max="0" step="1" value="0" aria-label="Segundo en el que empieza la canción">
+  </div>
   <label class="mrow switch" for="voiceToggle"><span>Grabar también mi voz</span><input type="checkbox" id="voiceToggle"></label>
-  <p class="mnote">La música empieza desde el principio cada vez que grabas un vídeo. Toca una para escucharla antes.</p>
+  <p class="mnote">La música empieza en el mismo punto cada vez que grabas un vídeo. Toca una para escucharla antes.</p>
+  <button class="mrow trend-head" id="trendBtn" aria-expanded="false" aria-controls="trendList"><span>🔥 Lo que suena en TikTok</span><span class="chev" aria-hidden="true">▾</span></button>
+  <div id="trendList" hidden></div>
 </section>
 <input type="file" id="songFile" accept="audio/*" hidden>
 
@@ -980,7 +998,7 @@ const BEATS = [
     kick:'x.......x.......', snare:'............x...', hat:'....x.......x...', bass:'1.......1.......', pad:true, arp:true}
 ];
 const Music = {ac:null, bus:null, dest:null, noise:null, sel:null, voice:store.get('voice', false), micNode:null,
-  song:null, songNode:null, seq:null};
+  song:null, songNode:null, seq:null, start:0};
 function audioReady(){
   if(!Music.ac){
     const AC = window.AudioContext || window.webkitAudioContext; const ac = new AC();
@@ -1057,9 +1075,10 @@ function playSelected(){
   const sel = Music.sel; if(!sel) return;
   audioReady();
   if(sel.kind === 'beat') startBeat(BEATS.find(b => b.id === sel.id));
-  else if(Music.song){ Music.song.currentTime = 0; Music.song.play().catch(() => {}); }
+  else if(Music.song){ Music.song.currentTime = Music.start; Music.song.play().catch(() => {}); }
   renderMusic();
 }
+const mmss = t => `${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2, '0')}`;
 const isPlaying = () => !!Music.seq || (Music.song && !Music.song.paused);
 
 function renderMusic(){
@@ -1072,6 +1091,9 @@ function renderMusic(){
     BEATS.map(b => row('beat:' + b.id, b.icon, 'g-color', b.name, `${b.mood} · ritmo de TikToff`, !!sel && sel.kind === 'beat' && sel.id === b.id)).join('') +
     row('file', '📱', 'g-arte', sel && sel.kind === 'file' ? sel.name : 'Una canción del móvil…', sel && sel.kind === 'file' ? 'Toca para elegir otra' : 'Elige un audio que tengas guardado', !!sel && sel.kind === 'file');
   $('#voiceToggle').checked = Music.voice;
+  const dur = Music.song && isFinite(Music.song.duration) ? Math.floor(Music.song.duration) : 0;
+  $('#seek').hidden = !(sel && sel.kind === 'file' && dur > 2);
+  if(!$('#seek').hidden){ const r = $('#seekRange'); r.max = String(dur - 1); r.value = String(Music.start); $('#seekLbl').textContent = mmss(Music.start); }
   const pill = $('#musicPill');
   pill.hidden = !sel || S.recording;
   if(sel) pill.textContent = '♪ ' + (sel.kind === 'beat' ? BEATS.find(b => b.id === sel.id).name : sel.name);
@@ -1102,14 +1124,52 @@ $('#songFile').addEventListener('change', e => {
   if(!file) return;
   const ac = audioReady();
   if(Music.song){ Music.song.pause(); try{ Music.songNode.disconnect(); }catch(_){} URL.revokeObjectURL(Music.song.src); }
-  const el = new Audio(URL.createObjectURL(file)); el.loop = true; el.preload = 'auto';
-  el.onplay = el.onpause = renderMusic;
+  const el = new Audio(URL.createObjectURL(file)); el.preload = 'auto';
+  el.onplay = el.onpause = el.onloadedmetadata = renderMusic;
+  el.onended = () => { el.currentTime = Music.start; el.play().catch(() => {}); };  // vuelve a empezar desde el punto elegido
+  Music.start = 0;
   el.onerror = () => { toast('Ese archivo no se puede reproducir'); chooseMusic(null); };
   Music.song = el; Music.songNode = ac.createMediaElementSource(el); Music.songNode.connect(Music.bus);
   chooseMusic({kind:'file', name: file.name.replace(/\.[^.]+$/, '')});
 });
+$('#seekRange').addEventListener('input', e => { $('#seekLbl').textContent = mmss(+e.target.value); });
+$('#seekRange').addEventListener('change', e => { Music.start = +e.target.value; playSelected(); });
 $('#voiceToggle').addEventListener('change', e => { Music.voice = e.target.checked; store.set('voice', Music.voice); store.set('voiceSet', true); });
 (() => { const id = store.get('music', null); if(id && BEATS.some(b => b.id === id)) Music.sel = {kind:'beat', id}; renderMusic(); })();
+
+/* ---------- lo que suena en TikTok: solo títulos (una tarea de GitHub actualiza trending.json cada semana) ---------- */
+const TREND_URLS = ['https://raw.githubusercontent.com/GHontanar/Tiktoff/main/trending.json', 'trending.json'];
+let trendLoaded = false;
+const esc = t => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function loadTrends(){
+  for(const u of TREND_URLS){
+    try{
+      const r = await fetch(u, {cache: 'no-store'}); if(!r.ok) continue;
+      const j = await r.json();
+      if(j && Array.isArray(j.items) && j.items.length){ store.set('trends', j); return j; }
+    }catch(e){}
+  }
+  return store.get('trends', null);
+}
+function renderTrends(j){
+  const box = $('#trendList');
+  if(!j || !j.items || !j.items.length){ box.innerHTML = '<p class="mnote">Todavía no hay lista. Vuelve a mirar en unos días.</p>'; return; }
+  const when = j.updated ? new Date(j.updated).toLocaleDateString('es-ES', {day:'numeric', month:'long'}) : '';
+  box.innerHTML = j.items.map((t, i) => {
+    const q = encodeURIComponent(`${t.title} ${t.artist || ''}`.trim());
+    return `<div class="trow"><span class="num">${t.rank || i + 1}</span><span class="txt"><b>${esc(t.title)}</b><span>${esc(t.artist || '')}</span></span>` +
+      `<a class="yt" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">YouTube</a></div>`;
+  }).join('') +
+    `<p class="mnote">Tendencias${j.region === 'ES' ? ' en España' : ''}${when ? ', actualizado el ' + when : ''}. Busca la canción, guárdala en el móvil y elígela en «Una canción del móvil…».</p>`;
+}
+$('#trendBtn').addEventListener('click', async () => {
+  const b = $('#trendBtn'), open = b.getAttribute('aria-expanded') !== 'true';
+  b.setAttribute('aria-expanded', String(open)); $('#trendList').hidden = !open;
+  if(open && !trendLoaded){
+    $('#trendList').innerHTML = '<p class="mnote"><span class="spinner"></span>Cargando…</p>';
+    renderTrends(await loadTrends()); trendLoaded = true;
+  }
+});
 
 /* ---------- foto y vídeo ---------- */
 function setMode(v){

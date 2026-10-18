@@ -1,0 +1,45 @@
+name: Tendencias de TikTok
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'   # lunes a las 06:17 UTC
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/trending.cjs
+      - .github/workflows/trending.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trending
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Instalar navegador
+        working-directory: ${{ runner.temp }}
+        run: |
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Leer tendencias
+        env:
+          NODE_PATH: ${{ runner.temp }}/node_modules
+        run: node scripts/trending.cjs
+      - name: Guardar trending.json
+        run: |
+          git diff --quiet -- trending.json && { echo "Sin cambios"; exit 0; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
+          git add trending.json
+          git commit -m "Actualizar tendencias de TikTok"
+          git push
