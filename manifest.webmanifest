@@ -1,6 +1,6 @@
 {
-  "name": "Chispa Cam",
-  "short_name": "Chispa",
+  "name": "TikToff",
+  "short_name": "TikToff",
   "description": "Cámara con filtros. Sin cuentas y sin subir nada a internet.",
   "lang": "es",
   "start_url": "./",
